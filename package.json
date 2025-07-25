@@ -1,0 +1,49 @@
+{
+  "name": "dbt-dime-game",
+  "version": "2.0.0",
+  "description": "Progressive Web App implementation of the DBT Dime Game for interpersonal effectiveness",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "npx serve .",
+    "validate": "html5validator --root . --also-check-css --also-check-svg",
+    "test-manifest": "node -e \"console.log('Manifest valid:', JSON.parse(require('fs').readFileSync('manifest.json', 'utf8')))\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dbt-helpers/dbt-dime-game.git"
+  },
+  "keywords": [
+    "dbt",
+    "dime-game",
+    "interpersonal-effectiveness",
+    "progressive-web-app",
+    "pwa",
+    "therapy",
+    "assertiveness",
+    "mental-health",
+    "dialectical-behavior-therapy"
+  ],
+  "author": "Your Name",
+  "license": "ISC",
+  "homepage": "https://dbt-helpers.github.io/dbt-dime-game",
+  "devDependencies": {
+    "html5validator": "^0.4.2"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "iOS >= 11.3",
+    "Android >= 67"
+  ],
+  "pwa": {
+    "name": "DBT Dime Game",
+    "short_name": "Dime Game",
+    "theme_color": "#3B82F6",
+    "background_color": "#667eea",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "start_url": "./"
+  }
+}
