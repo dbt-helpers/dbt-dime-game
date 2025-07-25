@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBT Dime Game</title>
+    <meta name="description" content="Use the DBT Dime Game to determine how assertively to ask or say no to a request">
+    <meta name="keywords" content="dbt,dime game,interpersonal effectiveness,assertiveness">
+    <meta name="author" content="DBT Dime Game PWA">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#3B82F6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="DBT Dime Game">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%233B82F6'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='40' font-weight='bold'%3E10¢%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%233B82F6'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='40' font-weight='bold'%3E10¢%3C/text%3E%3C/svg%3E">
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .question-card {
+            background: rgba(255, 255, 255, 0.95);
+            transition: all 0.3s ease;
+        }
+        
+        .question-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #10B981, #059669);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #EF4444, #DC2626);
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #3B82F6, #8B5CF6);
+        }
+        
+        .dime-display {
+            background: linear-gradient(135deg, #F59E0B, #D97706);
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Data
+        const prompts = {
+            ask: [
+                { name: 'Capability', question: 'Is this person able to give or do what I want?' },
+                { name: 'Priorities', question: 'Is getting my objective more important than my relationship with this person?' },
+                { name: 'Self-respect', question: 'Will asking help me feel competent and self-respecting?' },
+                { name: 'Rights', question: 'Is the person required by law or moral code to do or give me what I want?' },
+                { name: 'Authority', question: 'Am I responsible for telling the person what to do?' },
+                { name: 'Relationship', question: 'Is what I want appropriate for this relationship? (Is it right to ask for what I want?)' },
+                { name: 'Goals', question: 'Is asking important to a long-term goal?' },
+                { name: 'Give and take', question: 'Do I give as much as I get with this person?' },
+                { name: 'Homework', question: 'Do I know what I want and have the facts I need to support my request?' },
+                { name: 'Timing', question: 'Is this a good time to ask? (Is the person in the right mood?)' },
+            ],
+            sayNo: [
+                { name: 'Capability', question: 'Can I give the person what is wanted?' },
+                { name: 'Priorities', question: 'Is my relationship more important than saying no?' },
+                { name: 'Self-respect', question: 'Will saying no make me feel bad about myself?' },
+                { name: 'Rights', question: 'Am I required by law or moral code to give or do what is wanted, or does saying no violate this person\'s rights?' },
+                { name: 'Authority', question: 'Is the other person responsible for telling me what to do?' },
+                { name: 'Relationship', question: 'Is what the person is requesting of me appropriate to my relationship with this person?' },
+                { name: 'Goals', question: 'In the long term, will I regret saying no?' },
+                { name: 'Give and take', question: 'Do I owe this person a favor? (Does the person do a lot for me?)' },
+                { name: 'Homework', question: 'Do I know what I am saying no to? (Is the other person clear about what is being asked for?)' },
+                { name: 'Timing', question: 'Should I wait a while before saying no? (e.g. Am I in a bad mood right now?)' },
+            ],
+        };
+
+        const results = {
+            ask: [
+                'Don\'t ask; don\'t hint.',
+                'Don\'t ask; don\'t hint.',
+                'Hint indirectly; take no.',
+                'Hint openly; take no.',
+                'Ask tentatively; take no.',
+                'Ask gracefully, but take no.',
+                'Ask confidently; take no.',
+                'Ask confidently; resist no.',
+                'Ask firmly; resist no.',
+                'Ask firmly; insist; negotiate; keep trying.',
+                'Ask and don\'t take no for an answer.'
+            ],
+            sayNo: [
+                'Do what the other person wants without being asked.',
+                'Do what the other person wants without being asked.',
+                'Don\'t complain; do it cheerfully.',
+                'Do it, even if you\'re not cheerful about it.',
+                'Do it, but show that you\'d rather not.',
+                'Say you\'d rather not, but do it gracefully.',
+                'Say no confidently, but reconsider.',
+                'Say no confidently; resist saying yes.',
+                'Say no firmly; resist saying yes.',
+                'Say no firmly; resist; negotiate; keep trying.',
+                'Don\'t do it.'
+            ]
+        };
+
+        // Components
+        const DecisionTypeChooser = ({ onChoose }) => (
+            <div className="glass-card rounded-2xl p-8 max-w-2xl mx-auto text-center">
+                <h2 className="text-3xl font-bold text-white mb-8">Which decision are you trying to make?</h2>
+                <div className="space-y-4">
+                    <button 
+                        onClick={() => onChoose('ask')}
+                        className="btn-primary w-full p-6 rounded-xl text-white font-semibold text-lg shadow-lg border-0"
+                    >
+                        <div className="space-y-2">
+                            <div className="text-2xl">🤔</div>
+                            <div>Do I <span className="text-yellow-300 font-bold">ask</span> someone for something?</div>
+                            <div className="text-sm opacity-90">How assertively?</div>
+                        </div>
+                    </button>
+                    <button 
+                        onClick={() => onChoose('sayNo')}
+                        className="btn-primary w-full p-6 rounded-xl text-white font-semibold text-lg shadow-lg border-0"
+                    >
+                        <div className="space-y-2">
+                            <div className="text-2xl">✋</div>
+                            <div>Do I <span className="text-red-300 font-bold">decline</span> someone's request?</div>
+                            <div className="text-sm opacity-90">How assertively?</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        );
+
+        const ProgressBar = ({ current, total }) => (
+            <div className="w-full bg-white/20 rounded-full h-3 mb-6">
+                <div 
+                    className="progress-bar h-3 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${(current / total) * 100}%` }}
+                ></div>
+            </div>
+        );
+
+        const DimeDisplay = ({ dimes }) => (
+            <div className="dime-display rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <div className="text-center">
+                    <div className="text-2xl font-bold">{dimes}</div>
+                    <div className="text-xs">DIMES</div>
+                </div>
+            </div>
+        );
+
+        const QuestionCard = ({ question, onAnswer, questionNumber, totalQuestions, dimes }) => (
+            <div className="question-card rounded-2xl p-8 max-w-2xl mx-auto shadow-xl">
+                <ProgressBar current={questionNumber} total={totalQuestions} />
+                <DimeDisplay dimes={dimes} />
+                
+                <div className="text-center mb-8">
+                    <h3 className="text-2xl font-bold text-blue-600 mb-4">{question.name}</h3>
+                    <p className="text-lg text-gray-700 leading-relaxed">{question.question}</p>
+                </div>
+                
+                <div className="flex gap-4 justify-center">
+                    <button 
+                        onClick={() => onAnswer('yes')}
+                        className="btn-success px-8 py-4 rounded-xl text-white font-semibold text-lg shadow-lg border-0 min-w-[120px]"
+                    >
+                        ✓ Yes
+                    </button>
+                    <button 
+                        onClick={() => onAnswer('no')}
+                        className="btn-danger px-8 py-4 rounded-xl text-white font-semibold text-lg shadow-lg border-0 min-w-[120px]"
+                    >
+                        ✗ No
+                    </button>
+                </div>
+                
+                <div className="text-center mt-6 text-gray-500">
+                    Question {questionNumber} of {totalQuestions}
+                </div>
+            </div>
+        );
+
+        const ResultCard = ({ dimes, decisionType, answers, onRestart, onToggleAnswer }) => {
+            const result = results[decisionType][dimes];
+            const questionList = prompts[decisionType];
+            const boldYesAnswers = decisionType === 'ask';
+            
+            return (
+                <div className="max-w-4xl mx-auto space-y-6">
+                    {/* Result Display */}
+                    <div className="glass-card rounded-2xl p-8 text-center">
+                        <DimeDisplay dimes={dimes} />
+                        <h2 className="text-2xl font-bold text-white mb-4">Your Result:</h2>
+                        <div className="bg-white/90 rounded-xl p-6 mb-6">
+                            <p className="text-xl font-semibold text-gray-800">{result}</p>
+                        </div>
+                        <button 
+                            onClick={onRestart}
+                            className="btn-primary px-8 py-3 rounded-xl text-white font-semibold shadow-lg border-0"
+                        >
+                            🔄 Start Over
+                        </button>
+                    </div>
+                    
+                    {/* Answer Review */}
+                    <div className="question-card rounded-2xl p-6">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">Review Your Answers</h3>
+                        <p className="text-sm text-gray-600 mb-4">Tap any answer to change it</p>
+                        <div className="space-y-2">
+                            {answers.map((answer, index) => {
+                                const shouldBold = boldYesAnswers ? answer === 'yes' : answer === 'no';
+                                return (
+                                    <div 
+                                        key={index}
+                                        onClick={() => onToggleAnswer(index)}
+                                        className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition-all hover:bg-gray-50 ${shouldBold ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-gray-50'}`}
+                                    >
+                                        <span className={`flex-1 text-sm ${shouldBold ? 'font-semibold text-blue-800' : 'text-gray-700'}`}>
+                                            {questionList[index].question}
+                                        </span>
+                                        <span className={`font-bold ml-4 px-3 py-1 rounded-full text-sm ${
+                                            answer === 'yes' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                        }`}>
+                                            {answer}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Header = ({ stage, decisionType }) => {
+            let title = "DBT Dime Game";
+            let subtitle = "Determine how assertively to ask or decline requests";
+            
+            if (stage === 'questions') {
+                title = decisionType === 'ask' ? "Do I ask? How assertively?" : "Do I say no? How assertively?";
+                subtitle = "Answer each question honestly";
+            } else if (stage === 'results') {
+                title = "Your Recommendation";
+                subtitle = "Based on your responses";
+            }
+            
+            return (
+                <div className="text-center text-white mb-8">
+                    <h1 className="text-4xl font-bold mb-2">{title}</h1>
+                    <p className="text-lg opacity-90">{subtitle}</p>
+                </div>
+            );
+        };
+
+        const Footer = () => (
+            <footer className="text-center text-white/80 mt-12 space-y-2">
+                <div className="text-sm">
+                    <a href="https://borderlinebabble.com/2015/12/08/dbt-skills-group-interpersonal-effectiveness-weeks-5-6/" 
+                       className="text-blue-200 hover:text-white transition-colors underline" target="_blank" rel="noopener">
+                        DBT Dime Game Worksheet
+                    </a>
+                    {' | '}
+                    <a href="https://www.amazon.com/Skills-Training-Handouts-Worksheets-Second/dp/1572307811" 
+                       className="text-blue-200 hover:text-white transition-colors underline" target="_blank" rel="noopener">
+                        DBT Skills Training Manual
+                    </a>
+                </div>
+                <div className="text-xs opacity-70">
+                    Progressive Web App • Install for offline use
+                </div>
+            </footer>
+        );
+
+        // Main App Component
+        const App = () => {
+            const [stage, setStage] = useState('choice'); // 'choice', 'questions', 'results'
+            const [decisionType, setDecisionType] = useState(null);
+            const [currentQuestion, setCurrentQuestion] = useState(0);
+            const [answers, setAnswers] = useState([]);
+            const [dimes, setDimes] = useState(0);
+
+            const handleDecisionTypeChoice = (type) => {
+                setDecisionType(type);
+                setStage('questions');
+                setAnswers(new Array(prompts[type].length).fill(null));
+            };
+
+            const handleAnswer = (answer) => {
+                const newAnswers = [...answers];
+                newAnswers[currentQuestion] = answer;
+                setAnswers(newAnswers);
+
+                // Calculate dime change
+                const addDime = decisionType === 'ask' ? answer === 'yes' : answer === 'no';
+                setDimes(prev => prev + (addDime ? 1 : 0));
+
+                // Move to next question or results
+                if (currentQuestion < prompts[decisionType].length - 1) {
+                    setCurrentQuestion(prev => prev + 1);
+                } else {
+                    setStage('results');
+                }
+            };
+
+            const handleToggleAnswer = (index) => {
+                const newAnswers = [...answers];
+                const oldAnswer = newAnswers[index];
+                const newAnswer = oldAnswer === 'yes' ? 'no' : 'yes';
+                newAnswers[index] = newAnswer;
+                setAnswers(newAnswers);
+
+                // Recalculate total dimes
+                let newDimes = 0;
+                newAnswers.forEach(answer => {
+                    if (answer) {
+                        const addDime = decisionType === 'ask' ? answer === 'yes' : answer === 'no';
+                        if (addDime) newDimes++;
+                    }
+                });
+                setDimes(newDimes);
+            };
+
+            const handleRestart = () => {
+                setStage('choice');
+                setDecisionType(null);
+                setCurrentQuestion(0);
+                setAnswers([]);
+                setDimes(0);
+            };
+
+            return (
+                <div className="min-h-screen p-4">
+                    <div className="container mx-auto py-8">
+                        <Header stage={stage} decisionType={decisionType} />
+                        
+                        {stage === 'choice' && (
+                            <DecisionTypeChooser onChoose={handleDecisionTypeChoice} />
+                        )}
+                        
+                        {stage === 'questions' && (
+                            <QuestionCard 
+                                question={prompts[decisionType][currentQuestion]}
+                                onAnswer={handleAnswer}
+                                questionNumber={currentQuestion + 1}
+                                totalQuestions={prompts[decisionType].length}
+                                dimes={dimes}
+                            />
+                        )}
+                        
+                        {stage === 'results' && (
+                            <ResultCard 
+                                dimes={dimes}
+                                decisionType={decisionType}
+                                answers={answers}
+                                onRestart={handleRestart}
+                                onToggleAnswer={handleToggleAnswer}
+                            />
+                        )}
+                        
+                        <Footer />
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => console.log('SW registered'))
+                    .catch(error => console.log('SW registration failed'));
+            });
+        }
+    </script>
+</body>
+</html>
